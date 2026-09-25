@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The search index points at MediaStore ids, which are different on every phone,
+     so it must never be copied to a new device. It rebuilds itself anyway. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="database" path="shots.db" />
+        <exclude domain="database" path="shots.db-wal" />
+        <exclude domain="database" path="shots.db-shm" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="database" path="shots.db" />
+        <exclude domain="database" path="shots.db-wal" />
+        <exclude domain="database" path="shots.db-shm" />
+    </device-transfer>
+</data-extraction-rules>
