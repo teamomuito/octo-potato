@@ -5,10 +5,10 @@
     android:viewportWidth="24"
     android:viewportHeight="24">
     <group
-        android:scaleX="0.105"
-        android:scaleY="0.105"
-        android:translateX="-0.60"
-        android:translateY="-1.12">
+        android:scaleX="0.094"
+        android:scaleY="0.094"
+        android:translateX="1.10"
+        android:translateY="0.53">
         <path
             android:pathData="M112,154 C112,178 108,192 99,203"
             android:strokeColor="#FFFFFF"
@@ -34,24 +34,58 @@
             android:strokeLineCap="round"
             android:strokeLineJoin="round" />
         <path
-            android:pathData="M80,144 C66,164 46,166 40,182 C35,196 49,205 58,196"
+            android:pathData="M80,146 C64,166 42,176 28,184 C18,190 18,202 30,202"
             android:strokeColor="#FFFFFF"
             android:strokeWidth="30"
             android:strokeLineCap="round"
             android:strokeLineJoin="round" />
         <path
-            android:pathData="M160,144 C174,164 194,166 200,182 C205,196 191,205 182,196"
+            android:pathData="M160,146 C176,166 198,176 212,184 C222,190 222,202 210,202"
             android:strokeColor="#FFFFFF"
             android:strokeWidth="30"
             android:strokeLineCap="round"
             android:strokeLineJoin="round" />
+        <path
+            android:pathData="M18,132 L32,132 Q42,132 42,142 L42,176 Q42,186 32,186 L18,186 Q8,186 8,176 L8,142 Q8,132 18,132 Z"
+            android:fillColor="#FFFFFF"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="5"
+            android:strokeLineJoin="round" />
+        <path
+            android:pathData="M19,116 L31,116 Q35,116 35,120 L35,130 Q35,134 31,134 L19,134 Q15,134 15,130 L15,120 Q15,116 19,116 Z"
+            android:fillColor="#FFFFFF"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="5"
+            android:strokeLineJoin="round" />
+        <path
+            android:pathData="M15,120 L1,120 L1,128 L15,128"
+            android:fillColor="#FFFFFF"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="5"
+            android:strokeLineJoin="round" />
+        <path
+            android:pathData="M202,158 L228,158 Q236,158 236,166 L236,180 Q236,188 228,188 L202,188 Q194,188 194,180 L194,166 Q194,158 202,158 Z"
+            android:fillColor="#FFFFFF"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="5"
+            android:strokeLineJoin="round" />
+        <path
+            android:pathData="M199,150 L231,150 Q236,150 236,155 L236,157 Q236,162 231,162 L199,162 Q194,162 194,157 L194,155 Q194,150 199,150 Z"
+            android:fillColor="#FFFFFF"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="5"
+            android:strokeLineJoin="round" />
+        <path
+            android:pathData="M193,70 a11,11 0 1,0 22,0 a11,11 0 1,0 -22,0 Z"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="5" />
         <path
             android:pathData="M52,118 C52,70 82,40 120,40 C158,40 188,70 188,118 C188,140 176,154 160,160 L80,160 C64,154 52,140 52,118 Z"
             android:strokeColor="#FFFFFF"
             android:strokeWidth="10"
             android:strokeLineJoin="round" />
         <path
-            android:pathData="M52,118 C52,70 82,40 120,40 C158,40 188,70 188,118 C188,140 176,154 160,160 L80,160 C64,154 52,140 52,118 Z M72,97 Q72,92 77,92 L111,92 Q116,92 116,97 L114,110 Q112,124 97,124 L91,124 Q76,124 74,110 Z M124,97 Q124,92 129,92 L163,92 Q168,92 168,97 L166,110 Q164,124 149,124 L143,124 Q128,124 126,110 Z M108,134 Q120,152 132,134 Q120,143 108,134 Z"
+            android:pathData="M52,118 C52,70 82,40 120,40 C158,40 188,70 188,118 C188,140 176,154 160,160 L80,160 C64,154 52,140 52,118 Z M72,97 Q72,92 77,92 L111,92 Q116,92 116,97 L114,110 Q112,124 97,124 L91,124 Q76,124 74,110 Z M124,97 Q124,92 129,92 L163,92 Q168,92 168,97 L166,110 Q164,124 149,124 L143,124 Q128,124 126,110 Z M106,133 Q120,150 134,133 Q120,139 106,133 Z"
             android:fillColor="#FFFFFF"
             android:fillType="evenOdd" />
     </group>

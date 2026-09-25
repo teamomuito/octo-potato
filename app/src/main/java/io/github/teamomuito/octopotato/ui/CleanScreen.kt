@@ -35,8 +35,6 @@ import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
@@ -44,7 +42,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TriStateCheckbox
@@ -60,6 +57,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
@@ -76,6 +74,9 @@ import io.github.teamomuito.octopotato.data.AppUsage
 import io.github.teamomuito.octopotato.data.Expiry
 import io.github.teamomuito.octopotato.data.JunkItem
 import io.github.teamomuito.octopotato.data.JunkKind
+import io.github.teamomuito.octopotato.ui.theme.GlassCard
+import io.github.teamomuito.octopotato.ui.theme.LocalGlass
+import io.github.teamomuito.octopotato.ui.theme.bottomSpace
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -119,7 +120,6 @@ fun CleanScreen(vm: CleanViewModel, onSettings: () -> Unit) {
     Column(
         Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
             .statusBarsPadding(),
     ) {
         Row(
@@ -146,96 +146,105 @@ fun CleanScreen(vm: CleanViewModel, onSettings: () -> Unit) {
             }
         }
 
-        LazyColumn(
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-            modifier = Modifier.weight(1f),
-        ) {
-            if (!allFiles) {
-                item {
-                    Ask(
-                        title = "let potato look around",
-                        body = "to find thumbnails, empty folders, leftover cache and big old files, " +
-                            "potato needs \"all files access\". everything stays on your phone.",
-                    ) { Access.openAllFilesSettings(context) }
-                }
-            }
-            if (!usage) {
-                item {
-                    Ask(
-                        title = "see which apps hog space",
-                        body = "\"usage access\" lets potato see app and cache sizes, and which apps you haven't opened in ages.",
-                    ) { Access.openUsageAccessSettings(context) }
-                }
-            }
-
-            if (usage) {
-                item(key = "caches") {
-                    AppCacheCard(
-                        apps = cached,
-                        loading = appList == null,
-                        canClear = allFiles,
-                        open = "caches" in expanded,
-                        onOpen = { toggleOpen("caches") },
-                        onClearAll = {
-                            cacheBefore = cached.sumOf { it.cacheBytes }
-                            val clear = Intent(StorageManager.ACTION_CLEAR_APP_CACHE)
-                            runCatching { clearCaches.launch(clear) }.onFailure {
-                                Toast.makeText(context, "android didn't let potato do that, opening storage settings", Toast.LENGTH_LONG).show()
-                                runCatching { context.startActivity(Intent(Settings.ACTION_INTERNAL_STORAGE_SETTINGS)) }
-                            }
-                        },
-                        onApp = { openAppInfo(context, it.pkg) },
-                    )
-                }
-            }
-
-            when (val s = scan) {
-                is ScanState.Scanning -> item(key = "scanning") { Scanning(s.files) }
-                is ScanState.Done -> {
-                    for (kind in listOf(JunkKind.CACHE, JunkKind.THUMBNAILS, JunkKind.EMPTY, JunkKind.LARGE)) {
-                        val items = s.report.of(kind)
-                        item(key = kind.name) {
-                            JunkCard(
-                                kind = kind,
-                                items = items,
-                                selected = selected,
-                                open = kind.name in expanded,
-                                onOpen = { toggleOpen(kind.name) },
-                                onAll = { on -> vm.setAll(items, on) },
-                                onToggle = vm::toggle,
-                            )
-                        }
+        val showButton = picked.isNotEmpty() || working
+        Box(Modifier.weight(1f)) {
+            LazyColumn(
+                contentPadding = PaddingValues(
+                    start = 16.dp,
+                    end = 16.dp,
+                    top = 6.dp,
+                    bottom = 16.dp + bottomSpace() + if (showButton) 76.dp else 0.dp,
+                ),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                if (!allFiles) {
+                    item {
+                        Ask(
+                            title = "let potato look around",
+                            body = "to find thumbnails, empty folders, leftover cache and big old files, " +
+                                "potato needs \"all files access\". everything stays on your phone.",
+                        ) { Access.openAllFilesSettings(context) }
                     }
                 }
-                ScanState.Idle -> Unit
-            }
+                if (!usage) {
+                    item {
+                        Ask(
+                            title = "see which apps hog space",
+                            body = "\"usage access\" lets potato see app and cache sizes, and which apps you haven't opened in ages.",
+                        ) { Access.openUsageAccessSettings(context) }
+                    }
+                }
 
-            if (usage && appList != null) {
-                item(key = "unused") {
-                    UnusedAppsCard(
-                        apps = unused,
-                        open = "unused" in expanded,
-                        onOpen = { toggleOpen("unused") },
-                        onUninstall = { app ->
-                            uninstalling = app.pkg
-                            runCatching { uninstall.launch(Intent(Intent.ACTION_DELETE, Uri.fromParts("package", app.pkg, null))) }
-                                .onFailure { uninstalling = null }
-                        },
-                    )
+                if (usage) {
+                    item(key = "caches") {
+                        AppCacheCard(
+                            apps = cached,
+                            loading = appList == null,
+                            canClear = allFiles,
+                            open = "caches" in expanded,
+                            onOpen = { toggleOpen("caches") },
+                            onClearAll = {
+                                cacheBefore = cached.sumOf { it.cacheBytes }
+                                val clear = Intent(StorageManager.ACTION_CLEAR_APP_CACHE)
+                                runCatching { clearCaches.launch(clear) }.onFailure {
+                                    Toast.makeText(context, "android didn't let potato do that, opening storage settings", Toast.LENGTH_LONG).show()
+                                    runCatching { context.startActivity(Intent(Settings.ACTION_INTERNAL_STORAGE_SETTINGS)) }
+                                }
+                            },
+                            onApp = { openAppInfo(context, it.pkg) },
+                        )
+                    }
+                }
+
+                when (val s = scan) {
+                    is ScanState.Scanning -> item(key = "scanning") { Scanning(s.files) }
+                    is ScanState.Done -> {
+                        for (kind in listOf(JunkKind.CACHE, JunkKind.THUMBNAILS, JunkKind.EMPTY, JunkKind.LARGE)) {
+                            val items = s.report.of(kind)
+                            item(key = kind.name) {
+                                JunkCard(
+                                    kind = kind,
+                                    items = items,
+                                    selected = selected,
+                                    open = kind.name in expanded,
+                                    onOpen = { toggleOpen(kind.name) },
+                                    onAll = { on -> vm.setAll(items, on) },
+                                    onToggle = vm::toggle,
+                                )
+                            }
+                        }
+                    }
+                    ScanState.Idle -> Unit
+                }
+
+                if (usage && appList != null) {
+                    item(key = "unused") {
+                        UnusedAppsCard(
+                            apps = unused,
+                            open = "unused" in expanded,
+                            onOpen = { toggleOpen("unused") },
+                            onUninstall = { app ->
+                                uninstalling = app.pkg
+                                runCatching { uninstall.launch(Intent(Intent.ACTION_DELETE, Uri.fromParts("package", app.pkg, null))) }
+                                    .onFailure { uninstalling = null }
+                            },
+                        )
+                    }
                 }
             }
-        }
 
-        if (picked.isNotEmpty() || working) {
-            Surface(color = MaterialTheme.colorScheme.surfaceContainerLow) {
+            // floats just above the tab bar, over the list
+            if (showButton) {
                 Button(
                     onClick = { confirming = true },
                     enabled = !working,
-                    contentPadding = PaddingValues(vertical = 14.dp),
+                    contentPadding = PaddingValues(vertical = 16.dp),
                     modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = bottomSpace() + 4.dp, start = 24.dp, end = 24.dp)
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                        .shadow(12.dp, RoundedCornerShape(50)),
                 ) {
                     if (working) {
                         CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
@@ -275,12 +284,8 @@ fun CleanScreen(vm: CleanViewModel, onSettings: () -> Unit) {
 
 @Composable
 private fun Ask(title: String, body: String, onAllow: () -> Unit) {
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-            contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-        ),
-        shape = RoundedCornerShape(24.dp),
+    GlassCard(
+        tint = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = if (LocalGlass.current.dark) 0.45f else 0.7f),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(Modifier.padding(18.dp)) {
@@ -313,11 +318,7 @@ private fun Scanning(files: Int) {
 
 @Composable
 private fun Section(content: @Composable () -> Unit) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-        shape = RoundedCornerShape(24.dp),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
+    GlassCard(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) { content() }
     }
 }

@@ -53,12 +53,8 @@ import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -78,14 +74,12 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
@@ -94,13 +88,18 @@ import io.github.teamomuito.octopotato.data.Access
 import io.github.teamomuito.octopotato.data.MediaEntry
 import io.github.teamomuito.octopotato.data.MonthSummary
 import io.github.teamomuito.octopotato.data.MonthView
+import io.github.teamomuito.octopotato.ui.theme.GlassCard
+import io.github.teamomuito.octopotato.ui.theme.GlassCircle
+import io.github.teamomuito.octopotato.ui.theme.LocalGlass
 import io.github.teamomuito.octopotato.ui.theme.Pastel
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
+import io.github.teamomuito.octopotato.ui.theme.bottomSpace
+import io.github.teamomuito.octopotato.ui.theme.glass
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.abs
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 
 @Composable
 fun SwipeScreen(vm: SwipeViewModel, onSettings: () -> Unit) {
@@ -162,7 +161,6 @@ private fun MonthList(vm: SwipeViewModel, onSettings: () -> Unit) {
     Column(
         Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
             .statusBarsPadding(),
     ) {
         Row(
@@ -203,7 +201,7 @@ private fun MonthList(vm: SwipeViewModel, onSettings: () -> Unit) {
             list == null -> EmptyState("counting your photos…")
             list.isEmpty() -> EmptyState("no photos or videos yet.\nnothing to clean, nice.")
             else -> LazyColumn(
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 16.dp + bottomSpace()),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
                 modifier = Modifier.fillMaxSize(),
             ) {
@@ -217,12 +215,8 @@ private fun MonthList(vm: SwipeViewModel, onSettings: () -> Unit) {
 
 @Composable
 private fun FreedBanner(freed: String?, items: Int) {
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-        ),
-        shape = RoundedCornerShape(24.dp),
+    GlassCard(
+        tint = MaterialTheme.colorScheme.primaryContainer.copy(alpha = if (LocalGlass.current.dark) 0.5f else 0.7f),
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 6.dp),
@@ -248,12 +242,10 @@ private fun MonthRow(month: MonthSummary, onClick: () -> Unit) {
         add(formatBytes(context, month.bytes))
     }.joinToString(" · ")
 
-    Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+    GlassCard(
         shape = RoundedCornerShape(22.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(16.dp)) {
             Column(Modifier.weight(1f)) {
@@ -291,7 +283,6 @@ private fun MonthDeck(vm: SwipeViewModel, month: YearMonth, delete: (List<MediaE
     Column(
         Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
             .statusBarsPadding()
             .navigationBarsPadding(),
     ) {
@@ -346,8 +337,7 @@ private fun MarkedChip(bytes: Long, count: Int, onClick: () -> Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
-            .clip(RoundedCornerShape(50))
-            .background(MaterialTheme.colorScheme.primaryContainer)
+            .glass(RoundedCornerShape(50), LocalGlass.current, MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f))
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 8.dp),
     ) {
@@ -479,9 +469,9 @@ private fun CardStack(
                 .fillMaxWidth()
                 .padding(top = 6.dp, bottom = 16.dp),
         ) {
-            RoundButton(Icons.Rounded.Close, "delete", Color(0xFFFFD6E7), Color(0xFFB0265F), 68.dp) { decide(keep = false) }
-            RoundButton(Icons.Rounded.Refresh, "undo", MaterialTheme.colorScheme.surfaceContainerHigh, MaterialTheme.colorScheme.onSurfaceVariant, 48.dp, enabled = canUndo, onClick = onUndo)
-            RoundButton(Icons.Rounded.Favorite, "keep", Pastel.mint, Pastel.mintInk, 68.dp) { decide(keep = true) }
+            GlassCircle(Icons.Rounded.Close, "delete", Color(0xFFFFD6E7), Color(0xFFB0265F), 68.dp) { decide(keep = false) }
+            GlassCircle(Icons.Rounded.Refresh, "undo", Color.White, MaterialTheme.colorScheme.onSurfaceVariant, 48.dp, enabled = canUndo, onClick = onUndo)
+            GlassCircle(Icons.Rounded.Favorite, "keep", Pastel.mint, Pastel.mintInk, 68.dp) { decide(keep = true) }
         }
     }
 }
@@ -502,6 +492,7 @@ private fun MediaCard(
             .shadow(10.dp, shape)
             .clip(shape)
             .background(MaterialTheme.colorScheme.surfaceVariant)
+            .border(1.5.dp, LocalGlass.current.rim, shape)
             .clickable(onClick = onClick),
     ) {
         Thumbnail(uri, Modifier.fillMaxSize(), big = true, alignment = Alignment.Center)
@@ -576,26 +567,6 @@ private fun Stamp(text: String, color: Color, modifier: Modifier) {
     )
 }
 
-@Composable
-private fun RoundButton(
-    icon: ImageVector,
-    description: String,
-    container: Color,
-    content: Color,
-    size: Dp,
-    enabled: Boolean = true,
-    onClick: () -> Unit,
-) {
-    FilledIconButton(
-        onClick = onClick,
-        enabled = enabled,
-        colors = IconButtonDefaults.filledIconButtonColors(containerColor = container, contentColor = content),
-        modifier = Modifier.size(size),
-    ) {
-        Icon(icon, contentDescription = description, modifier = Modifier.size(size * 0.42f))
-    }
-}
-
 /** The "marked for deletion" pile. Tap one to rescue it, or send them all off in one go. */
 @Composable
 private fun ReviewPile(
@@ -656,6 +627,7 @@ private fun ReviewPile(
                         Modifier
                             .aspectRatio(0.8f)
                             .clip(RoundedCornerShape(16.dp))
+                            .border(1.dp, LocalGlass.current.rim, RoundedCornerShape(16.dp))
                             .clickable { onRescue(entry) },
                     ) {
                         Thumbnail(Uri.parse(entry.uri), Modifier.fillMaxSize(), alignment = Alignment.Center)

@@ -1,8 +1,10 @@
 package io.github.teamomuito.octopotato.ui
 
 import android.widget.Toast
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -22,20 +24,18 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Share
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,13 +48,17 @@ import io.github.teamomuito.octopotato.data.Expiry
 import io.github.teamomuito.octopotato.data.Kind
 import io.github.teamomuito.octopotato.data.Shot
 import io.github.teamomuito.octopotato.data.TidySettings
+import io.github.teamomuito.octopotato.ui.theme.GlassCard
+import io.github.teamomuito.octopotato.ui.theme.LiquidBackground
+import io.github.teamomuito.octopotato.ui.theme.LocalGlass
 
 @Composable
 fun DetailScreen(id: Long, vm: MainViewModel, onBack: () -> Unit, onTrash: (Shot) -> Unit) {
     val detail by remember(id) { vm.detail(id) }.collectAsStateWithLifecycle(initialValue = null)
     val tidy by vm.tidy.collectAsStateWithLifecycle()
 
-    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    Box(Modifier.fillMaxSize()) {
+        LiquidBackground()
         Column(
             Modifier
                 .fillMaxSize()
@@ -88,6 +92,7 @@ private fun DetailBody(detail: Detail, tidy: TidySettings, vm: MainViewModel, on
         Modifier
             .padding(horizontal = 16.dp)
             .clip(RoundedCornerShape(24.dp))
+            .border(1.dp, LocalGlass.current.rim, RoundedCornerShape(24.dp))
             .clickable { openInGallery(context, shot.uri) },
     )
 
@@ -121,8 +126,7 @@ private fun DetailBody(detail: Detail, tidy: TidySettings, vm: MainViewModel, on
             }) { Text("copy all") }
         }
     }
-    Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+    GlassCard(
         shape = RoundedCornerShape(22.dp),
         modifier = Modifier
             .fillMaxWidth()
@@ -154,12 +158,9 @@ private fun TemporaryCard(shot: Shot, tidy: TidySettings, onKeep: (Boolean) -> U
             if (left <= 0) "its time is up, it goes in the next tidy." else "${Expiry.label(left)}, then off to the trash."
         }
     }
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-        ),
+    GlassCard(
         shape = RoundedCornerShape(22.dp),
+        tint = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = if (LocalGlass.current.dark) 0.45f else 0.7f),
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),

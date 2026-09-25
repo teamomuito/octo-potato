@@ -2,12 +2,14 @@ package io.github.teamomuito.octopotato.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -112,10 +114,14 @@ private val OctoShapes = Shapes(
 
 @Composable
 fun OctoTheme(content: @Composable () -> Unit) {
-    MaterialTheme(
-        colorScheme = if (isSystemInDarkTheme()) Dark else Light,
-        typography = OctoType,
-        shapes = OctoShapes,
-        content = content,
-    )
+    val dark = isSystemInDarkTheme()
+    val colors = if (dark) Dark else Light
+    MaterialTheme(colorScheme = colors, typography = OctoType, shapes = OctoShapes) {
+        // text drawn straight on the background needs a color too, not just text inside cards
+        CompositionLocalProvider(
+            LocalContentColor provides colors.onBackground,
+            LocalGlass provides if (dark) DarkGlass else LightGlass,
+            content = content,
+        )
+    }
 }

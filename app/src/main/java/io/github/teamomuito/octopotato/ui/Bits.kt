@@ -32,13 +32,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -61,7 +60,10 @@ import androidx.compose.ui.unit.dp
 import io.github.teamomuito.octopotato.R
 import io.github.teamomuito.octopotato.data.Kind
 import io.github.teamomuito.octopotato.data.Snippet
+import io.github.teamomuito.octopotato.ui.theme.GlassCard
+import io.github.teamomuito.octopotato.ui.theme.LocalGlass
 import io.github.teamomuito.octopotato.ui.theme.Pastel
+import io.github.teamomuito.octopotato.ui.theme.bottomSpace
 import kotlin.math.sqrt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -225,12 +227,8 @@ fun formatBytes(context: Context, bytes: Long): String = Formatter.formatShortFi
 
 @Composable
 fun NoteCard(title: String, body: String, action: String, onAction: () -> Unit) {
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-            contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-        ),
-        shape = RoundedCornerShape(24.dp),
+    GlassCard(
+        tint = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = if (LocalGlass.current.dark) 0.45f else 0.7f),
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 6.dp),
@@ -240,8 +238,8 @@ fun NoteCard(title: String, body: String, action: String, onAction: () -> Unit) 
             modifier = Modifier.padding(start = 18.dp, end = 10.dp, top = 12.dp, bottom = 12.dp),
         ) {
             Column(Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleMedium)
-                Text(body, style = MaterialTheme.typography.bodySmall)
+                Text(title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onTertiaryContainer)
+                Text(body, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onTertiaryContainer)
             }
             Spacer(Modifier.width(8.dp))
             Button(onClick = onAction) { Text(action) }
@@ -257,6 +255,7 @@ fun EmptyState(text: String, modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.Center,
         modifier = modifier
             .fillMaxSize()
+            .padding(bottom = bottomSpace())
             .padding(32.dp),
     ) {
         Potato(boxSize = 110.dp)

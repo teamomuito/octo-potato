@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="art/potato.svg" width="190" alt="Potato, a pink octopus in sunglasses">
+  <img src="art/potato.svg" width="210" alt="Potato, a pink octopus in sunglasses holding a spray bottle and a sponge">
 </p>
 
 <h1 align="center">octo potato</h1>
@@ -84,7 +84,9 @@ The apk lands in `app/build/outputs/apk/debug/`. The tests for the "is this a bo
 - Swipe cleanup reads photos and videos straight from MediaStore, and your swipes live in a small SQLite table so they survive restarts
 - Deep clean walks shared storage once per scan, and the rules for what counts as junk are plain functions with their own tests
 - Jetpack Compose for the UI, [Sniglet](https://fonts.google.com/specimen/Sniglet) for the round letters
-- Potato is a hand-drawn SVG, the same shapes are used for the app icon. See [`art/`](art)
+- The glassy look is mostly plain translucency over a static wash of color, so it costs next to nothing. Only the floating tab bar does real blur, with [Haze](https://github.com/chrisbanes/haze), since that's the one thing content scrolls under
+- Potato is a hand-drawn SVG (now with cleaning gear), and the same shapes make the app icon. See [`art/`](art)
+- The apk only carries ARM code, which is what phones run. That keeps it about a third smaller
 
 ## questions
 

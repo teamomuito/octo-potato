@@ -2,7 +2,7 @@ package io.github.teamomuito.octopotato.ui
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -31,8 +31,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
@@ -44,9 +42,11 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
@@ -57,7 +57,10 @@ import io.github.teamomuito.octopotato.data.Expiry
 import io.github.teamomuito.octopotato.data.Progress
 import io.github.teamomuito.octopotato.data.Shot
 import io.github.teamomuito.octopotato.data.TidySettings
+import io.github.teamomuito.octopotato.ui.theme.LocalGlass
 import io.github.teamomuito.octopotato.ui.theme.Pastel
+import io.github.teamomuito.octopotato.ui.theme.bottomSpace
+import io.github.teamomuito.octopotato.ui.theme.glass
 
 @Composable
 fun HomeScreen(
@@ -78,7 +81,6 @@ fun HomeScreen(
     Column(
         Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
             .statusBarsPadding(),
     ) {
         Header(progress, onSettings)
@@ -158,6 +160,7 @@ private fun statusLine(p: Progress?): String = when {
 @Composable
 private fun SearchBox(query: String, onChange: (String) -> Unit) {
     val focus = LocalFocusManager.current
+    val glass = LocalGlass.current
     OutlinedTextField(
         value = query,
         onValueChange = onChange,
@@ -171,9 +174,9 @@ private fun SearchBox(query: String, onChange: (String) -> Unit) {
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
         keyboardActions = KeyboardActions(onSearch = { focus.clearFocus() }),
         colors = OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
-            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
-            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+            focusedContainerColor = glass.fill,
+            unfocusedContainerColor = glass.fill,
+            unfocusedBorderColor = Color.White.copy(alpha = if (glass.dark) 0.18f else 0.85f),
         ),
         modifier = Modifier
             .fillMaxWidth()
@@ -184,6 +187,7 @@ private fun SearchBox(query: String, onChange: (String) -> Unit) {
 @Composable
 private fun FilterRow(selected: Filter, showSoon: Boolean, onPick: (Filter) -> Unit) {
     val filters = Filter.entries.filter { it != Filter.SOON || showSoon }
+    val glass = LocalGlass.current
     LazyRow(
         contentPadding = PaddingValues(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -195,8 +199,15 @@ private fun FilterRow(selected: Filter, showSoon: Boolean, onPick: (Filter) -> U
                 label = { Text(f.label) },
                 shape = RoundedCornerShape(50),
                 colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                    containerColor = glass.fill,
+                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.9f),
                     selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                ),
+                border = FilterChipDefaults.filterChipBorder(
+                    enabled = true,
+                    selected = f == selected,
+                    borderColor = Color.White.copy(alpha = if (glass.dark) 0.18f else 0.85f),
+                    selectedBorderColor = Color.Transparent,
                 ),
             )
         }
@@ -207,9 +218,10 @@ private fun FilterRow(selected: Filter, showSoon: Boolean, onPick: (Filter) -> U
 @Composable
 private fun ShotGrid(shots: List<Shot>, tidy: TidySettings, onOpen: (Shot) -> Unit) {
     val now = System.currentTimeMillis()
+    val glass = LocalGlass.current
     LazyVerticalGrid(
         columns = GridCells.Adaptive(104.dp),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 24.dp),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 16.dp + bottomSpace()),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
         modifier = Modifier.fillMaxSize(),
@@ -219,6 +231,7 @@ private fun ShotGrid(shots: List<Shot>, tidy: TidySettings, onOpen: (Shot) -> Un
                 Modifier
                     .aspectRatio(0.6f)
                     .clip(RoundedCornerShape(18.dp))
+                    .border(1.dp, glass.rim, RoundedCornerShape(18.dp))
                     .clickable { onOpen(shot) },
             ) {
                 Thumbnail(shot.uri, Modifier.fillMaxSize())
@@ -241,8 +254,9 @@ private fun leavingLabel(shot: Shot, tidy: TidySettings, now: Long): String? {
 @Composable
 private fun ResultList(shots: List<Shot>, onOpen: (Shot) -> Unit) {
     val hit = hitStyle(MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer)
+    val glass = LocalGlass.current
     LazyColumn(
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 24.dp),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 16.dp + bottomSpace()),
         verticalArrangement = Arrangement.spacedBy(10.dp),
         modifier = Modifier.fillMaxSize(),
     ) {
@@ -250,8 +264,7 @@ private fun ResultList(shots: List<Shot>, onOpen: (Shot) -> Unit) {
             Row(
                 Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(22.dp))
-                    .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                    .glass(RoundedCornerShape(22.dp), glass)
                     .clickable { onOpen(shot) }
                     .padding(10.dp),
             ) {

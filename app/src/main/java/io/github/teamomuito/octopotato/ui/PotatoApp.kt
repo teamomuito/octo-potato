@@ -11,10 +11,11 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -22,14 +23,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -46,8 +43,15 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import io.github.teamomuito.octopotato.data.Access
 import io.github.teamomuito.octopotato.data.Shot
+import io.github.teamomuito.octopotato.ui.theme.BAR_SPACE
+import io.github.teamomuito.octopotato.ui.theme.GlassTabBar
+import io.github.teamomuito.octopotato.ui.theme.LiquidBackground
+import io.github.teamomuito.octopotato.ui.theme.LocalBarSpace
+import io.github.teamomuito.octopotato.ui.theme.TabItem
 import kotlinx.coroutines.launch
 
 @Composable
@@ -115,46 +119,44 @@ private fun Screens(vm: MainViewModel) {
     BackHandler(enabled = settingsOpen && openId == null) { settingsOpen = false }
     BackHandler(enabled = openId != null) { openId = null }
 
+    // the cards get the whole screen while you're swiping through a month
+    val showBar = tab != TAB_SWIPE || swiping == null
+    val haze = remember { HazeState() }
+
     Box(Modifier.fillMaxSize()) {
-        Column(Modifier.fillMaxSize()) {
-            Box(Modifier.weight(1f)) {
-                if (tab == TAB_SCREENSHOTS) {
-                    HomeScreen(
+        // everything the frosted tab bar can see through
+        Box(
+            Modifier
+                .fillMaxSize()
+                .hazeSource(haze),
+        ) {
+            LiquidBackground()
+            CompositionLocalProvider(LocalBarSpace provides if (showBar) BAR_SPACE else 0.dp) {
+                when (tab) {
+                    TAB_SCREENSHOTS -> HomeScreen(
                         vm = vm,
                         due = due,
                         onOpen = { openId = it.id },
                         onSettings = { settingsOpen = true },
                         onTidy = { trash(due) },
                     )
-                } else if (tab == TAB_SWIPE) {
-                    SwipeScreen(swipe, onSettings = { settingsOpen = true })
-                } else {
-                    CleanScreen(clean, onSettings = { settingsOpen = true })
+                    TAB_SWIPE -> SwipeScreen(swipe, onSettings = { settingsOpen = true })
+                    else -> CleanScreen(clean, onSettings = { settingsOpen = true })
                 }
             }
-            // the cards get the whole screen while you're swiping through a month
-            if (tab != TAB_SWIPE || swiping == null) {
-                NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
-                    NavigationBarItem(
-                        selected = tab == TAB_SCREENSHOTS,
-                        onClick = { tab = TAB_SCREENSHOTS },
-                        icon = { Icon(Icons.Rounded.Search, contentDescription = null) },
-                        label = { Text("screenshots") },
-                    )
-                    NavigationBarItem(
-                        selected = tab == TAB_SWIPE,
-                        onClick = { tab = TAB_SWIPE },
-                        icon = { Icon(Icons.Rounded.Favorite, contentDescription = null) },
-                        label = { Text("swipe") },
-                    )
-                    NavigationBarItem(
-                        selected = tab == TAB_CLEAN,
-                        onClick = { tab = TAB_CLEAN },
-                        icon = { Icon(Icons.Rounded.Delete, contentDescription = null) },
-                        label = { Text("clean") },
-                    )
-                }
-            }
+        }
+        AnimatedVisibility(
+            visible = showBar,
+            enter = slideInVertically { it } + fadeIn(),
+            exit = slideOutVertically { it } + fadeOut(),
+            modifier = Modifier.align(Alignment.BottomCenter),
+        ) {
+            GlassTabBar(
+                tabs = TABS,
+                selected = tab,
+                onSelect = { tab = it },
+                haze = haze,
+            )
         }
         AnimatedVisibility(
             visible = settingsOpen,
@@ -178,7 +180,7 @@ private fun Screens(vm: MainViewModel) {
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .navigationBarsPadding()
-                .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 96.dp),
+                .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = BAR_SPACE),
         )
     }
 }
@@ -186,3 +188,9 @@ private fun Screens(vm: MainViewModel) {
 private const val TAB_SCREENSHOTS = 0
 private const val TAB_SWIPE = 1
 private const val TAB_CLEAN = 2
+
+private val TABS = listOf(
+    TabItem("screenshots", Icons.Rounded.Search),
+    TabItem("swipe", Icons.Rounded.Favorite),
+    TabItem("clean", Icons.Rounded.Delete),
+)

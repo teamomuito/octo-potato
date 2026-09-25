@@ -16,6 +16,11 @@ android {
         targetSdk = 35
         versionCode = 3
         versionName = "1.2"
+
+        // phones are all ARM; the Intel builds of ML Kit's native code were a third of the apk
+        ndk {
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+        }
     }
 
     signingConfigs {
@@ -78,6 +83,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.mlkit.text.recognition)
     implementation(libs.mlkit.barcode.scanning)
+    implementation(libs.haze)
 
     testImplementation(libs.junit)
 }
