@@ -31,6 +31,10 @@ object Prefs {
     private val _freed = MutableStateFlow(Freed())
     val freed: StateFlow<Freed> = _freed
 
+    /** Running total of what the cleaner has removed. */
+    private val _cleaned = MutableStateFlow(0L)
+    val cleaned: StateFlow<Long> = _cleaned
+
     /** Swipe deletes skip the trash and free the space right away. */
     private val _skipTrash = MutableStateFlow(false)
     val skipTrash: StateFlow<Boolean> = _skipTrash
@@ -47,6 +51,14 @@ object Prefs {
         )
         _freed.value = Freed(prefs.getLong("freedBytes", 0), prefs.getInt("freedItems", 0))
         _skipTrash.value = prefs.getBoolean("skipTrash", false)
+        _cleaned.value = prefs.getLong("cleanedBytes", 0)
+    }
+
+    @Synchronized
+    fun addCleaned(bytes: Long) {
+        if (bytes <= 0) return
+        _cleaned.value += bytes
+        prefs.edit().putLong("cleanedBytes", _cleaned.value).apply()
     }
 
     @Synchronized

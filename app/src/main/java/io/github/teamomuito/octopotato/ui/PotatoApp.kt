@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Icon
@@ -106,10 +107,11 @@ private fun Screens(vm: MainViewModel) {
     }
 
     val swipe: SwipeViewModel = viewModel()
+    val clean: CleanViewModel = viewModel()
     val swiping by swipe.openMonth.collectAsStateWithLifecycle()
     var tab by rememberSaveable { mutableIntStateOf(TAB_SCREENSHOTS) }
 
-    BackHandler(enabled = tab == TAB_SWIPE && !settingsOpen && openId == null) { tab = TAB_SCREENSHOTS }
+    BackHandler(enabled = tab != TAB_SCREENSHOTS && !settingsOpen && openId == null) { tab = TAB_SCREENSHOTS }
     BackHandler(enabled = settingsOpen && openId == null) { settingsOpen = false }
     BackHandler(enabled = openId != null) { openId = null }
 
@@ -124,12 +126,14 @@ private fun Screens(vm: MainViewModel) {
                         onSettings = { settingsOpen = true },
                         onTidy = { trash(due) },
                     )
-                } else {
+                } else if (tab == TAB_SWIPE) {
                     SwipeScreen(swipe, onSettings = { settingsOpen = true })
+                } else {
+                    CleanScreen(clean, onSettings = { settingsOpen = true })
                 }
             }
             // the cards get the whole screen while you're swiping through a month
-            if (tab == TAB_SCREENSHOTS || swiping == null) {
+            if (tab != TAB_SWIPE || swiping == null) {
                 NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
                     NavigationBarItem(
                         selected = tab == TAB_SCREENSHOTS,
@@ -142,6 +146,12 @@ private fun Screens(vm: MainViewModel) {
                         onClick = { tab = TAB_SWIPE },
                         icon = { Icon(Icons.Rounded.Favorite, contentDescription = null) },
                         label = { Text("swipe") },
+                    )
+                    NavigationBarItem(
+                        selected = tab == TAB_CLEAN,
+                        onClick = { tab = TAB_CLEAN },
+                        icon = { Icon(Icons.Rounded.Delete, contentDescription = null) },
+                        label = { Text("clean") },
                     )
                 }
             }
@@ -175,3 +185,4 @@ private fun Screens(vm: MainViewModel) {
 
 private const val TAB_SCREENSHOTS = 0
 private const val TAB_SWIPE = 1
+private const val TAB_CLEAN = 2
