@@ -125,6 +125,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     fun updateTidy(change: (TidySettings) -> TidySettings) = Prefs.updateTidy(change)
 
+    val skipTrash: StateFlow<Boolean> = Prefs.skipTrash
+
+    fun setSkipTrash(on: Boolean) = Prefs.setSkipTrash(on)
+
     private fun io(block: suspend () -> Unit) {
         viewModelScope.launch(Dispatchers.IO) { block() }
     }

@@ -54,6 +54,7 @@ fun SettingsScreen(vm: MainViewModel, onBack: () -> Unit) {
     val tidy by vm.tidy.collectAsStateWithLifecycle()
     val silent by vm.canTidySilently.collectAsStateWithLifecycle()
     val canNotify by vm.canNotify.collectAsStateWithLifecycle()
+    val skipTrash by vm.skipTrash.collectAsStateWithLifecycle()
     val askNotify = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { vm.refresh() }
     var rereadStarted by remember { mutableStateOf(false) }
 
@@ -110,15 +111,35 @@ fun SettingsScreen(vm: MainViewModel, onBack: () -> Unit) {
                 }
             }
 
+            Section {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("swipe deletes skip the trash", style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            if (skipTrash) {
+                                "on. photos you swipe away are gone right away and the space frees up immediately. no undo."
+                            } else {
+                                "off. swiped photos sit in your phone's trash for 30 days first, just in case. " +
+                                    "the space frees up once the trash is emptied."
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Switch(checked = skipTrash, onCheckedChange = vm::setSkipTrash)
+                }
+            }
+
             if (Build.VERSION.SDK_INT >= 31) {
                 Section {
                     Text("tidy without asking", style = MaterialTheme.typography.titleMedium)
                     Text(
                         if (silent) {
-                            "on. when you open the app, potato moves anything that's due to the trash by itself."
+                            "on. no more popups: old temporary screenshots go by themselves when you open the app, and swipe deletes go through in one tap."
                         } else {
-                            "android normally asks before an app moves files to the trash. " +
-                                "give potato \"media management\" access and it can do it without the popup."
+                            "android normally asks before an app deletes photos. " +
+                                "give potato \"media management\" access and it can do it without the popup, for screenshots and swipes."
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,

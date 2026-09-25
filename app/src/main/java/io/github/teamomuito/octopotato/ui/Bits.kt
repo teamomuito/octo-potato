@@ -7,6 +7,7 @@ import android.graphics.ImageDecoder
 import android.net.Uri
 import android.provider.Settings
 import android.text.format.DateUtils
+import android.text.format.Formatter
 import android.util.LruCache
 import android.util.Size
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -17,13 +18,22 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -44,6 +54,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -51,9 +62,9 @@ import io.github.teamomuito.octopotato.R
 import io.github.teamomuito.octopotato.data.Kind
 import io.github.teamomuito.octopotato.data.Snippet
 import io.github.teamomuito.octopotato.ui.theme.Pastel
+import kotlin.math.sqrt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlin.math.sqrt
 
 /** Potato. Bobs gently unless told to hold still. */
 @Composable
@@ -105,25 +116,31 @@ fun Pill(text: String, background: Color, ink: Color, modifier: Modifier = Modif
 }
 
 private object Thumbs {
-    private val cache = object : LruCache<Uri, ImageBitmap>((Runtime.getRuntime().maxMemory() / 8).toInt()) {
-        override fun sizeOf(key: Uri, value: ImageBitmap) = value.width * value.height * 4
+    private val cache = object : LruCache<String, ImageBitmap>((Runtime.getRuntime().maxMemory() / 8).toInt()) {
+        override fun sizeOf(key: String, value: ImageBitmap) = value.width * value.height * 4
     }
 
-    fun cached(uri: Uri): ImageBitmap? = cache.get(uri)
+    private fun key(uri: Uri, big: Boolean) = if (big) "$uri#big" else uri.toString()
 
-    fun load(resolver: ContentResolver, uri: Uri): ImageBitmap? = try {
-        resolver.loadThumbnail(uri, Size(360, 720), null).asImageBitmap().also { cache.put(uri, it) }
+    fun cached(uri: Uri, big: Boolean): ImageBitmap? = cache.get(key(uri, big))
+
+    fun load(resolver: ContentResolver, uri: Uri, big: Boolean): ImageBitmap? = try {
+        val size = if (big) Size(720, 1280) else Size(360, 720)
+        resolver.loadThumbnail(uri, size, null).asImageBitmap().also { cache.put(key(uri, big), it) }
     } catch (e: Exception) {
         null
     }
 }
 
-/** A cropped preview of the top of a screenshot, which is usually where the good bit is. */
+/**
+ * A cropped preview. Screenshots show their top, which is usually where the good bit is.
+ * [big] is for the swipe cards, which fill most of the screen. Works for videos too.
+ */
 @Composable
-fun Thumbnail(uri: Uri, modifier: Modifier = Modifier) {
+fun Thumbnail(uri: Uri, modifier: Modifier = Modifier, big: Boolean = false, alignment: Alignment = Alignment.TopCenter) {
     val resolver = LocalContext.current.contentResolver
-    val image by produceState(Thumbs.cached(uri), uri) {
-        if (value == null) value = withContext(Dispatchers.IO) { Thumbs.load(resolver, uri) }
+    val image by produceState(Thumbs.cached(uri, big), uri, big) {
+        if (value == null) value = withContext(Dispatchers.IO) { Thumbs.load(resolver, uri, big) }
     }
     Box(modifier.background(MaterialTheme.colorScheme.surfaceVariant)) {
         image?.let {
@@ -131,7 +148,7 @@ fun Thumbnail(uri: Uri, modifier: Modifier = Modifier) {
                 bitmap = it,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
-                alignment = Alignment.TopCenter,
+                alignment = alignment,
                 modifier = Modifier.fillMaxSize(),
             )
         }
@@ -197,9 +214,60 @@ fun share(context: Context, uri: Uri) {
     context.startActivity(Intent.createChooser(send, null))
 }
 
-fun openInGallery(context: Context, uri: Uri) {
-    val view = Intent(Intent.ACTION_VIEW).setDataAndType(uri, "image/*").addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+fun openInGallery(context: Context, uri: Uri, video: Boolean = false) {
+    val view = Intent(Intent.ACTION_VIEW)
+        .setDataAndType(uri, if (video) "video/*" else "image/*")
+        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     runCatching { context.startActivity(view) }
+}
+
+fun formatBytes(context: Context, bytes: Long): String = Formatter.formatShortFileSize(context, bytes)
+
+@Composable
+fun NoteCard(title: String, body: String, action: String, onAction: () -> Unit) {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+            contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+        ),
+        shape = RoundedCornerShape(24.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(start = 18.dp, end = 10.dp, top = 12.dp, bottom = 12.dp),
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.titleMedium)
+                Text(body, style = MaterialTheme.typography.bodySmall)
+            }
+            Spacer(Modifier.width(8.dp))
+            Button(onClick = onAction) { Text(action) }
+        }
+    }
+}
+
+/** Potato and a line of text, for when there's nothing to show. */
+@Composable
+fun EmptyState(text: String, modifier: Modifier = Modifier) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+        modifier = modifier
+            .fillMaxSize()
+            .padding(32.dp),
+    ) {
+        Potato(boxSize = 110.dp)
+        Spacer(Modifier.height(16.dp))
+        Text(
+            text,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+    }
 }
 
 fun openAppSettings(context: Context) {

@@ -1,15 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The search index points at MediaStore ids, which are different on every phone,
-     so it must never be copied to a new device. It rebuilds itself anyway. -->
+<!-- The search index and the swipe history point at MediaStore ids, which are different
+     on every phone, so they must never be copied to a new device. -->
 <data-extraction-rules>
     <cloud-backup>
         <exclude domain="database" path="shots.db" />
         <exclude domain="database" path="shots.db-wal" />
         <exclude domain="database" path="shots.db-shm" />
+        <exclude domain="database" path="swipes.db" />
+        <exclude domain="database" path="swipes.db-journal" />
     </cloud-backup>
     <device-transfer>
         <exclude domain="database" path="shots.db" />
         <exclude domain="database" path="shots.db-wal" />
         <exclude domain="database" path="shots.db-shm" />
+        <exclude domain="database" path="swipes.db" />
+        <exclude domain="database" path="swipes.db-journal" />
     </device-transfer>
 </data-extraction-rules>

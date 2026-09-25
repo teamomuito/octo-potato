@@ -10,13 +10,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -36,7 +33,6 @@ import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
@@ -53,7 +49,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -111,9 +106,9 @@ fun HomeScreen(
             val p = progress
             when {
                 p == null -> Unit
-                p.total == 0 -> Empty("no screenshots yet.\ngo take one, potato will wait.")
-                results.shots.isEmpty() && query.isNotBlank() -> Empty("nothing for “${query.trim()}”.\npotato checked twice.")
-                results.shots.isEmpty() -> Empty(emptyFilterText(filter))
+                p.total == 0 -> EmptyState("no screenshots yet.\ngo take one, potato will wait.")
+                results.shots.isEmpty() && query.isNotBlank() -> EmptyState("nothing for “${query.trim()}”.\npotato checked twice.")
+                results.shots.isEmpty() -> EmptyState(emptyFilterText(filter))
                 results.searching -> ResultList(results.shots, onOpen)
                 else -> ShotGrid(results.shots, tidy, onOpen)
             }
@@ -208,36 +203,13 @@ private fun FilterRow(selected: Filter, showSoon: Boolean, onPick: (Filter) -> U
     }
 }
 
-@Composable
-private fun NoteCard(title: String, body: String, action: String, onAction: () -> Unit) {
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-            contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-        ),
-        shape = RoundedCornerShape(24.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 18.dp, end = 10.dp, top = 12.dp, bottom = 12.dp)) {
-            Column(Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleMedium)
-                Text(body, style = MaterialTheme.typography.bodySmall)
-            }
-            Spacer(Modifier.width(8.dp))
-            Button(onClick = onAction) { Text(action) }
-        }
-    }
-}
 
 @Composable
 private fun ShotGrid(shots: List<Shot>, tidy: TidySettings, onOpen: (Shot) -> Unit) {
-    val bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val now = System.currentTimeMillis()
     LazyVerticalGrid(
         columns = GridCells.Adaptive(104.dp),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 24.dp + bottom),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 24.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
         modifier = Modifier.fillMaxSize(),
@@ -268,10 +240,9 @@ private fun leavingLabel(shot: Shot, tidy: TidySettings, now: Long): String? {
 
 @Composable
 private fun ResultList(shots: List<Shot>, onOpen: (Shot) -> Unit) {
-    val bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val hit = hitStyle(MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer)
     LazyColumn(
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 24.dp + bottom),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
         modifier = Modifier.fillMaxSize(),
     ) {
@@ -324,22 +295,3 @@ private fun emptyFilterText(filter: Filter): String = when (filter) {
     Filter.ALL -> "no screenshots yet."
 }
 
-@Composable
-private fun Empty(text: String) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(32.dp),
-    ) {
-        Potato(boxSize = 110.dp)
-        Spacer(Modifier.height(16.dp))
-        Text(
-            text,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
-    }
-}

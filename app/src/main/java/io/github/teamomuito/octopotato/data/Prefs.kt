@@ -20,10 +20,20 @@ data class TidySettings(
     }
 }
 
+/** Running total of what swipe cleanup has deleted. */
+data class Freed(val bytes: Long = 0, val items: Int = 0)
+
 object Prefs {
     private lateinit var prefs: SharedPreferences
     private val _tidy = MutableStateFlow(TidySettings())
     val tidy: StateFlow<TidySettings> = _tidy
+
+    private val _freed = MutableStateFlow(Freed())
+    val freed: StateFlow<Freed> = _freed
+
+    /** Swipe deletes skip the trash and free the space right away. */
+    private val _skipTrash = MutableStateFlow(false)
+    val skipTrash: StateFlow<Boolean> = _skipTrash
 
     fun init(context: Context) {
         if (::prefs.isInitialized) return
@@ -35,6 +45,20 @@ object Prefs {
             boarding = prefs.getBoolean("boarding", true),
             codes = prefs.getBoolean("codes", true),
         )
+        _freed.value = Freed(prefs.getLong("freedBytes", 0), prefs.getInt("freedItems", 0))
+        _skipTrash.value = prefs.getBoolean("skipTrash", false)
+    }
+
+    @Synchronized
+    fun addFreed(bytes: Long, items: Int) {
+        val next = Freed(_freed.value.bytes + bytes, _freed.value.items + items)
+        _freed.value = next
+        prefs.edit().putLong("freedBytes", next.bytes).putInt("freedItems", next.items).apply()
+    }
+
+    fun setSkipTrash(on: Boolean) {
+        _skipTrash.value = on
+        prefs.edit().putBoolean("skipTrash", on).apply()
     }
 
     fun updateTidy(change: (TidySettings) -> TidySettings) {

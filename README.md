@@ -6,7 +6,7 @@
 
 <p align="center">
   an android app that reads your screenshots so you can find them again<br>
-  <sub>and quietly bins the ones you only needed for a day</sub>
+  <sub>bins the ones you only needed for a day, and lets you swipe through old photos like it's a dating app</sub>
 </p>
 
 <p align="center">
@@ -20,6 +20,8 @@
 You screenshot something so you won't forget it. A few months later there are 2,000 screenshots and you can't find the one you wanted.
 
 Octo Potato reads the words in every screenshot on your phone and lets you search them. Type `wifi` and there's the router password. Type `pasta` and there's that recipe from someone's story. Potato is the octopus. Potato does the reading.
+
+And for the rest of the camera roll there's swipe cleanup: old photos and videos one month at a time, right to keep, left to say bye.
 
 ## what it does
 
@@ -38,6 +40,16 @@ Potato gives them a week, counted from whenever it first saw them. So installing
 Android doesn't let an app delete other apps' files from the background, so once a day Potato checks what's due and sends a notification. Tap it and they're gone. If you give it "media management" access in settings (Android 12 and up), it skips the confirm popup and tidies by itself whenever you open the app.
 
 It tries hard not to be wrong. A tiny QR code in the corner of a web page doesn't count, a random 4 digit number doesn't make something a login code, and years like 2024 are ignored. If it still gets one wrong, the **keep** switch is right there.
+
+## swipe cleanup
+
+Your camera roll, one month at a time, like a dating app for old photos. Swipe right to keep, left to say bye. Oldest months come first, since that's where the forgotten stuff lives (blurry concert videos, fourteen photos of the same sunset).
+
+- Every month shows how many photos and videos it has, how much space they take and how far you got.
+- Swipes are remembered. Stop halfway through March 2019 and it picks up right there, and anything you kept never comes back.
+- There's an undo button, and before anything goes you get the whole bye pile to look over. Tap one to keep it after all.
+- Deleting happens in one go when the month is done, and a counter keeps track of how much space you've freed so far.
+- By default things go to the phone's trash first, so you still have 30 days to change your mind. If you'd rather get the space back right away, there's a switch for that in settings.
 
 ## install
 
@@ -61,6 +73,7 @@ The apk lands in `app/build/outputs/apk/debug/`. The tests for the "is this a bo
 - [ML Kit](https://developers.google.com/ml-kit) text recognition and barcode scanning, both on the phone. Long scrolling screenshots are read in slices.
 - The words go into a SQLite FTS4 table, which is why search is instant even with thousands of screenshots
 - WorkManager wakes up when a new image lands, plus once a day for the tidy check
+- Swipe cleanup reads photos and videos straight from MediaStore, and your swipes live in a small SQLite table so they survive restarts
 - Jetpack Compose for the UI, [Sniglet](https://fonts.google.com/specimen/Sniglet) for the round letters
 - Potato is a hand-drawn SVG, the same shapes are used for the app icon. See [`art/`](art)
 
@@ -74,6 +87,9 @@ Right now it reads Latin script, so English, Portuguese, Spanish, French and fri
 
 **It thought my concert ticket was a boarding pass.**
 Flip **keep** on it and it's safe. If you open an issue with what the screenshot roughly looked like (minus anything personal), the rules can get better.
+
+**Does swipe cleanup delete things as I swipe?**
+No, swiping left only puts things in the bye pile. Nothing is deleted until you tap delete at the end, and Android asks you to confirm (unless you gave Potato "media management" access in settings).
 
 **Why is the octopus called Potato?**
 Look at that face.
