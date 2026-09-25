@@ -14,8 +14,8 @@ android {
         applicationId = "io.github.teamomuito.octopotato"
         minSdk = 30
         targetSdk = 35
-        versionCode = 3
-        versionName = "1.2"
+        versionCode = 4
+        versionName = "1.2.1"
 
         // phones are all ARM; the Intel builds of ML Kit's native code were a third of the apk
         ndk {

@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.teamomuito.octopotato.data.Access
+import io.github.teamomuito.octopotato.data.AppRules
 import io.github.teamomuito.octopotato.data.AppUsage
 import io.github.teamomuito.octopotato.data.Apps
 import io.github.teamomuito.octopotato.data.Cleaner
@@ -25,6 +26,8 @@ sealed interface ScanState {
     data class Scanning(val files: Int) : ScanState
     data class Done(val report: JunkReport) : ScanState
 }
+
+private const val GUIDED_MIN_BYTES = 5L * 1024 * 1024
 
 class CleanViewModel(app: Application) : AndroidViewModel(app) {
 
@@ -89,12 +92,49 @@ class CleanViewModel(app: Application) : AndroidViewModel(app) {
         return freed
     }
 
-    /** Android's clear-all-caches screen is done; whatever the cache total dropped by was freed. */
-    fun afterCacheClear(before: Long) {
+    /** After Android's clear-all-caches screen: whatever the cache total dropped by was freed. */
+    suspend fun recountCaches(before: Long): Long = withContext(Dispatchers.IO) {
+        val now = Apps.load(getApplication())
+        apps.value = now
+        (before - now.sumOf { it.cacheBytes }).coerceAtLeast(0).also { Prefs.addCleaned(it) }
+    }
+
+    /**
+     * One by one: for phones without Android's clear-all screen (Samsung, for one). Each app's
+     * settings page gets opened in turn, biggest cache first; the person taps clear cache there.
+     */
+    data class Guided(val queue: List<AppUsage>, val done: Int = 0, val freed: Long = 0) {
+        val next: AppUsage? get() = queue.firstOrNull()
+    }
+
+    val guided = MutableStateFlow<Guided?>(null)
+
+    fun startGuided() {
+        val withCache = AppRules.byCache(apps.value.orEmpty()).filter { it.cacheBytes > 0 }
+        // skip the crumbs, unless crumbs are all there is
+        val worth = withCache.filter { it.cacheBytes >= GUIDED_MIN_BYTES }.ifEmpty { withCache }
+        guided.value = if (worth.isEmpty()) null else Guided(worth)
+    }
+
+    fun skipGuided() = guided.update { g -> g?.let { if (it.queue.size <= 1) null else it.copy(queue = it.queue.drop(1)) } }
+
+    fun stopGuided() {
+        guided.value = null
+        loadApps()
+    }
+
+    /** Back from an app's settings page: count what went, move on to the next one. */
+    fun afterGuidedStep() {
+        val g = guided.value ?: return
+        val app = g.next ?: return
         viewModelScope.launch(Dispatchers.IO) {
-            val now = Apps.load(getApplication())
-            apps.value = now
-            Prefs.addCleaned(before - now.sumOf { it.cacheBytes })
+            val after = Apps.cacheOf(getApplication(), app.pkg) ?: 0
+            val freed = (app.cacheBytes - after).coerceAtLeast(0)
+            Prefs.addCleaned(freed)
+            apps.update { list -> list?.map { if (it.pkg == app.pkg) it.copy(cacheBytes = after) else it } }
+            guided.update { current ->
+                current?.let { it.copy(queue = it.queue.drop(1), done = it.done + if (freed > 0) 1 else 0, freed = it.freed + freed) }
+            }
         }
     }
 

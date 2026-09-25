@@ -1,8 +1,10 @@
 package io.github.teamomuito.octopotato.ui
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.SystemClock
 import android.os.storage.StorageManager
 import android.provider.Settings
 import android.text.format.DateUtils
@@ -96,10 +98,30 @@ fun CleanScreen(vm: CleanViewModel, onSettings: () -> Unit) {
     var confirming by remember { mutableStateOf(false) }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { vm.refresh() }
 
-    // Android's own "clear all app caches" screen. It only opens for apps with all files access.
+    // Android's own "clear all app caches" screen. It only opens for apps with all files access,
+    // and some phones (Samsung, for one) leave it out: it closes the moment it opens.
     var cacheBefore by remember { mutableLongStateOf(0L) }
-    val clearCaches = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-        vm.afterCacheClear(cacheBefore)
+    var cacheLaunched by remember { mutableLongStateOf(0L) }
+    var cacheHelp by remember { mutableStateOf(false) }
+    val clearCaches = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        val skipped = result.resultCode != Activity.RESULT_OK && SystemClock.elapsedRealtime() - cacheLaunched < 1500
+        scope.launch {
+            val freed = vm.recountCaches(cacheBefore)
+            when {
+                freed > 0 -> Toast.makeText(context, "poof! ${formatBytes(context, freed)} of cache cleared", Toast.LENGTH_SHORT).show()
+                skipped -> cacheHelp = true
+            }
+        }
+    }
+    // one by one: each app's settings page, where "clear cache" lives
+    val guided by vm.guided.collectAsStateWithLifecycle()
+    val guidedStep = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        vm.afterGuidedStep()
+    }
+    val openNext: () -> Unit = {
+        guided?.next?.let { app ->
+            runCatching { guidedStep.launch(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", app.pkg, null))) }
+        }
     }
     var uninstalling by remember { mutableStateOf<String?>(null) }
     val uninstall = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
@@ -178,22 +200,31 @@ fun CleanScreen(vm: CleanViewModel, onSettings: () -> Unit) {
 
                 if (usage) {
                     item(key = "caches") {
-                        AppCacheCard(
-                            apps = cached,
-                            loading = appList == null,
-                            canClear = allFiles,
-                            open = "caches" in expanded,
-                            onOpen = { toggleOpen("caches") },
-                            onClearAll = {
-                                cacheBefore = cached.sumOf { it.cacheBytes }
-                                val clear = Intent(StorageManager.ACTION_CLEAR_APP_CACHE)
-                                runCatching { clearCaches.launch(clear) }.onFailure {
-                                    Toast.makeText(context, "android didn't let potato do that, opening storage settings", Toast.LENGTH_LONG).show()
-                                    runCatching { context.startActivity(Intent(Settings.ACTION_INTERNAL_STORAGE_SETTINGS)) }
-                                }
-                            },
-                            onApp = { openAppInfo(context, it.pkg) },
-                        )
+                        // the walkthrough takes the caches card's spot, so it shows up right where you tapped
+                        val g = guided
+                        if (g != null) {
+                            GuidedCard(g, onOpen = openNext, onSkip = vm::skipGuided, onStop = vm::stopGuided)
+                        } else {
+                            AppCacheCard(
+                                apps = cached,
+                                loading = appList == null,
+                                canClear = allFiles,
+                                open = "caches" in expanded,
+                                onOpen = { toggleOpen("caches") },
+                                onClearAll = {
+                                    cacheBefore = cached.sumOf { it.cacheBytes }
+                                    val clear = Intent(StorageManager.ACTION_CLEAR_APP_CACHE)
+                                    if (clear.resolveActivity(context.packageManager) == null) {
+                                        cacheHelp = true
+                                    } else {
+                                        cacheLaunched = SystemClock.elapsedRealtime()
+                                        runCatching { clearCaches.launch(clear) }.onFailure { cacheHelp = true }
+                                    }
+                                },
+                                onOneByOne = vm::startGuided,
+                                onApp = { openAppInfo(context, it.pkg) },
+                            )
+                        }
                     }
                 }
 
@@ -256,6 +287,27 @@ fun CleanScreen(vm: CleanViewModel, onSettings: () -> Unit) {
                 }
             }
         }
+    }
+
+    if (cacheHelp) {
+        AlertDialog(
+            onDismissRequest = { cacheHelp = false },
+            title = { Text("your phone skipped that screen") },
+            text = {
+                Text(
+                    "some phones, samsung included, leave out android's clear-all-caches screen, and apps aren't " +
+                        "allowed to clear other apps' caches themselves. potato can walk you through the big ones " +
+                        "instead: it opens each app's page, you tap storage, then clear cache, and come back for the next.",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    cacheHelp = false
+                    vm.startGuided()
+                }) { Text("one by one") }
+            },
+            dismissButton = { TextButton(onClick = { cacheHelp = false }) { Text("not now") } },
+        )
     }
 
     if (confirming) {
@@ -445,6 +497,45 @@ private fun detail(context: Context, item: JunkItem): String {
 private fun ago(time: Long): String =
     DateUtils.getRelativeTimeSpanString(time, System.currentTimeMillis(), DateUtils.DAY_IN_MILLIS).toString().lowercase()
 
+/** Walks through app caches one app at a time. */
+@Composable
+private fun GuidedCard(g: CleanViewModel.Guided, onOpen: () -> Unit, onSkip: () -> Unit, onStop: () -> Unit) {
+    val context = LocalContext.current
+    val next = g.next
+    GlassCard(
+        tint = MaterialTheme.colorScheme.primaryContainer.copy(alpha = if (LocalGlass.current.dark) 0.5f else 0.75f),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            if (next == null) {
+                Text("all done!", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    if (g.done == 0) "nothing cleared this time. no worries."
+                    else "${plural(g.done, "app")} cleaned, ${formatBytes(context, g.freed)} of cache gone.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                Spacer(Modifier.height(8.dp))
+                Button(onClick = onStop) { Text("nice") }
+            } else {
+                Text("one by one · ${plural(g.queue.size, "app")} to go", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "tap open, then storage, then clear cache, then come back here." +
+                        if (g.done > 0) " ${formatBytes(context, g.freed)} cleared so far." else "",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                Spacer(Modifier.height(10.dp))
+                AppRow(next, detail = "${formatBytes(context, next.cacheBytes)} of cache") {
+                    Button(onClick = onOpen) { Text("open") }
+                }
+                Row {
+                    TextButton(onClick = onSkip) { Text("skip this one") }
+                    TextButton(onClick = onStop) { Text("stop") }
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun AppCacheCard(
     apps: List<AppUsage>,
@@ -453,6 +544,7 @@ private fun AppCacheCard(
     open: Boolean,
     onOpen: () -> Unit,
     onClearAll: () -> Unit,
+    onOneByOne: () -> Unit,
     onApp: (AppUsage) -> Unit,
 ) {
     val context = LocalContext.current
@@ -466,11 +558,15 @@ private fun AppCacheCard(
             onOpen = onOpen,
         )
         Spacer(Modifier.height(10.dp))
-        if (canClear) {
-            FilledTonalButton(onClick = onClearAll, enabled = !loading && total > 0) { Text("clear all app caches") }
-        } else {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (canClear) {
+                FilledTonalButton(onClick = onClearAll, enabled = !loading && total > 0) { Text("clear all") }
+            }
+            TextButton(onClick = onOneByOne, enabled = !loading && total > 0) { Text("one by one") }
+        }
+        if (!canClear) {
             Text(
-                "clearing every app's cache at once needs \"all files access\" too.",
+                "clearing every app at once needs \"all files access\" too. one by one works without it.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

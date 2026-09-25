@@ -102,6 +102,13 @@ object Apps {
             }
     }
 
+    /** Current cache size of one app, or null if it can't be read (or the app is gone). */
+    fun cacheOf(context: Context, pkg: String): Long? = runCatching {
+        context.getSystemService(StorageStatsManager::class.java)
+            .queryStatsForPackage(StorageManager.UUID_DEFAULT, pkg, Process.myUserHandle())
+            .cacheBytes
+    }.getOrNull()
+
     fun isInstalled(context: Context, pkg: String): Boolean = try {
         @Suppress("DEPRECATION")
         context.packageManager.getPackageInfo(pkg, 0)
